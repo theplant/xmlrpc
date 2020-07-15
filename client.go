@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 	"net/url"
 	"sync"
+	"time"
 )
 
 type Client struct {
@@ -130,11 +131,15 @@ func (codec *clientCodec) Close() error {
 
 // NewClient returns instance of rpc.Client object, that is used to send request to xmlrpc service.
 func NewClient(requrl string, transport http.RoundTripper) (*Client, error) {
+	return NewClientWithTimeout(requrl, transport, 90*time.Second)
+}
+
+func NewClientWithTimeout(requrl string, transport http.RoundTripper, timeout time.Duration) (*Client, error) {
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
 
-	httpClient := &http.Client{Transport: transport}
+	httpClient := &http.Client{Transport: transport, Timeout: timeout}
 
 	jar, err := cookiejar.New(nil)
 
