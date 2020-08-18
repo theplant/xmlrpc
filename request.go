@@ -24,7 +24,7 @@ func NewRequest(url string, method string, args interface{}) (*http.Request, err
 	if err != nil {
 		return nil, err
 	}
-
+	request.Header.Set("Xmlrpc-Method-Name", method)
 	request.Header.Set("Content-Type", "text/xml")
 	request.Header.Set("Content-Length", fmt.Sprintf("%d", len(body)))
 
