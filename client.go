@@ -39,6 +39,9 @@ type clientCodec struct {
 
 	// close notifies codec is closed.
 	close chan uint64
+
+	// closeIdleConnections decide whether to close idle HTTP connections when closing the codec.
+	closeIdleConnections bool
 }
 
 func (codec *clientCodec) WriteRequest(request *rpc.Request, args interface{}) (err error) {
@@ -120,8 +123,10 @@ func (codec *clientCodec) ReadResponseBody(v interface{}) (err error) {
 }
 
 func (codec *clientCodec) Close() error {
-	if transport, ok := codec.httpClient.Transport.(*http.Transport); ok {
-		transport.CloseIdleConnections()
+	if codec.closeIdleConnections {
+		if transport, ok := codec.httpClient.Transport.(*http.Transport); ok {
+			transport.CloseIdleConnections()
+		}
 	}
 
 	close(codec.close)
@@ -129,18 +134,12 @@ func (codec *clientCodec) Close() error {
 	return nil
 }
 
-func (codec *clientCodec) CloseWithoutIdleConnections() error {
-	close(codec.close)
-
-	return nil
-}
-
 // NewClient returns instance of rpc.Client object, that is used to send request to xmlrpc service.
 func NewClient(requrl string, transport http.RoundTripper) (*Client, error) {
-	return NewClientWithTimeout(requrl, transport, 90*time.Second)
+	return NewClientWithTimeout(requrl, transport, 90*time.Second, true)
 }
 
-func NewClientWithTimeout(requrl string, transport http.RoundTripper, timeout time.Duration) (*Client, error) {
+func NewClientWithTimeout(requrl string, transport http.RoundTripper, timeout time.Duration, closeIdleConnections bool) (*Client, error) {
 	if transport == nil {
 		transport = http.DefaultTransport
 	}
@@ -160,12 +159,13 @@ func NewClientWithTimeout(requrl string, transport http.RoundTripper, timeout ti
 	}
 
 	codec := clientCodec{
-		url:        u,
-		httpClient: httpClient,
-		close:      make(chan uint64),
-		ready:      make(chan uint64),
-		responses:  make(map[uint64]*http.Response),
-		cookies:    jar,
+		url:                  u,
+		httpClient:           httpClient,
+		close:                make(chan uint64),
+		ready:                make(chan uint64),
+		responses:            make(map[uint64]*http.Response),
+		cookies:              jar,
+		closeIdleConnections: closeIdleConnections,
 	}
 
 	return &Client{rpc.NewClientWithCodec(&codec)}, nil
