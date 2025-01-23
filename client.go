@@ -129,6 +129,12 @@ func (codec *clientCodec) Close() error {
 	return nil
 }
 
+func (codec *clientCodec) CloseWithoutIdleConnections() error {
+	close(codec.close)
+
+	return nil
+}
+
 // NewClient returns instance of rpc.Client object, that is used to send request to xmlrpc service.
 func NewClient(requrl string, transport http.RoundTripper) (*Client, error) {
 	return NewClientWithTimeout(requrl, transport, 90*time.Second)
