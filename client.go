@@ -40,6 +40,7 @@ type clientCodec struct {
 	// close notifies codec is closed.
 	close chan uint64
 
+	// closeIdleConnections decide whether to close idle HTTP connections when closing the codec.
 	closeIdleConnections bool
 }
 
